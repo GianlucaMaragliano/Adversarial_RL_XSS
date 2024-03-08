@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "xss-detection-model"
+version = "0.1.0"
+description = ""
+authors = ["Gianluca <gianluca.maragliano@usi.ch>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.1"
+scikit-learn = "^1.4.1.post1"
+bs4 = "^0.0.2"
+nltk = "^3.8.1"
+gensim = "^4.3.2"
+torch = "^2.2.1"
+torchvision = "^0.17.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
