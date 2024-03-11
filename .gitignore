@@ -3,4 +3,4 @@
 .idea
 
 
-google_drive_credentials.json
+.dvc/google_drive_credentials.json
