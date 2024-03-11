@@ -1,8 +1,9 @@
 import pandas as pd
 import argparse
 
-from src.utils.request_tools import do_xss_post_request
-from src.utils.html_tools import is_same_dom
+
+from utils.request_tools import do_xss_post_request
+from utils.html_tools import is_same_dom
 
 
 def filter_dataset_with_oracle(opt):

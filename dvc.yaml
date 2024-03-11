@@ -1,0 +1,37 @@
+stages:
+  filter_dataset:
+    cmd: python src/filters/filter_dataset.py --data data/Payloads.csv --dest data/filtered.csv --params params.yaml
+    deps:
+      - src/filters/filter_dataset.py
+      - data/Payloads.csv
+    params:
+      - filter_dataset
+    outs:
+      - data/filtered.csv
+  filter_dataset_with_oracle:
+    cmd: python src/filters/filter_xss_with_oracle.py --data data/filtered.csv --dest data/filtered_oracle.csv --endpoint http://127.0.0.1:5555/vuln_backend/1.0/endpoint/
+    deps:
+      - data/filtered.csv
+      - src/filters/filter_xss_with_oracle.py
+    outs:
+      - data/filtered_oracle.csv
+  dataset_trainval_test_split:
+    cmd: python src/filters/dataset_split.py --data data/filtered_oracle.csv --dest_train data/trainval.csv --dest_test data/test.csv --split_arguments dataset_trainval_test_split --params params.yaml
+    deps:
+      - data/filtered_oracle.csv
+      - src/filters/dataset_split.py
+    params:
+      - dataset_trainval_test_split
+    outs:
+      - data/trainval.csv
+      - data/test.csv
+  dataset_train_val_split:
+    cmd: python src/filters/dataset_split.py --data data/trainval.csv --dest_train data/train.csv --dest_test data/val.csv --split_arguments dataset_train_val_split --params params.yaml
+    deps:
+      - data/trainval.csv
+      - src/filters/dataset_split.py
+    params:
+      - dataset_train_val_split
+    outs:
+      - data/train.csv
+      - data/val.csv
