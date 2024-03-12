@@ -31,6 +31,6 @@ def get_sorted_tokens(x_tfidf):
 
     # Create a DataFrame and Sort Tokens by TF-IDF Score
     df_tfidf = pd.DataFrame(total_tfidf_scores, columns=feature_names)
-    sorted_tokens = df_tfidf.sum().sort_values(ascending=False)
+    sorted_tokens = df_tfidf.sum().sort_values(ascending=False).index.tolist()
 
     return sorted_tokens
