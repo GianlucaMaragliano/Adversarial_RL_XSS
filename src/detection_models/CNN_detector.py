@@ -16,7 +16,7 @@ from utils.general import process_payloads
 class XSSDataset(Dataset):
     class_encoder = LabelEncoder()
     features_encoder = LabelEncoder()
-    MAX_LENGTH = 35
+    MAX_LENGTH = 30
 
     def __init__(self, features, labels):
         encoded_labels = self.class_encoder.fit_transform(labels)
@@ -44,7 +44,7 @@ class CNNDetector(nn.Module):
         self.pool = nn.MaxPool1d(kernel_size=2)
         self.conv2_1 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5)
         self.conv2_2 = nn.Conv1d(in_channels=128, out_channels=128, kernel_size=5)
-        self.fc1 = nn.Linear(128 * 3, 1)
+        self.fc1 = nn.Linear(128 * 2, 1)
 
     def forward(self, x):
         # print("Input | Expected shape: batch, 200, 1 | Actual shape:", x.shape)
@@ -174,14 +174,13 @@ for epoch in range(EPOCHS):
             vloss = criterion(voutputs, vlabels)
             running_vloss += vloss
 
-            voutputs = torch.where(voutputs > 0.51, 1, 0)
+            predicted = torch.where(voutputs > 0.51, 1, 0)
             # print(voutputs, vlabels)
 
             # Accuracy on validation
-            _, predicted = torch.max(voutputs.data, 1)
             # print(predicted, vlabels)
             n_samples += vlabels.size(0)
-            n_correct += (voutputs == vlabels).sum().item()
+            n_correct += (predicted == vlabels).sum().item()
     accuracy = 100.0 * n_correct / n_samples
 
     avg_vloss = running_vloss / (i + 1)
