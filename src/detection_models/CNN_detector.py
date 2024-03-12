@@ -39,7 +39,7 @@ class CNNDetector(nn.Module):
         super(CNNDetector, self).__init__()
         self.embedding = nn.Embedding(vocab_dim, embedding_dim)
         self.flatten = nn.Flatten()
-        self.conv1_1 = nn.Conv1d(in_channels=vector_size, out_channels=64, kernel_size=4)
+        self.conv1_1 = nn.Conv1d(in_channels=embedding_dim, out_channels=64, kernel_size=4)
         self.conv1_2 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=4)
         self.pool = nn.MaxPool1d(kernel_size=2)
         self.conv2_1 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5)
@@ -174,11 +174,14 @@ for epoch in range(EPOCHS):
             vloss = criterion(voutputs, vlabels)
             running_vloss += vloss
 
+            voutputs = torch.where(voutputs > 0.51, 1, 0)
+            # print(voutputs, vlabels)
+
             # Accuracy on validation
             _, predicted = torch.max(voutputs.data, 1)
-            print(predicted, vlabels)
+            # print(predicted, vlabels)
             n_samples += vlabels.size(0)
-            n_correct += (predicted == vlabels).sum().item()
+            n_correct += (voutputs == vlabels).sum().item()
     accuracy = 100.0 * n_correct / n_samples
 
     avg_vloss = running_vloss / (i + 1)
