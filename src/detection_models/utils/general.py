@@ -1,5 +1,3 @@
-import pandas as pd
-
 from src.utils.preprocessor import preprocess_payload
 from src.utils.tokenizer import xss_tokenizer, clean_tokenized_payloads
 from src.utils.vectorizer import xss_payloads_vectorizer, get_sorted_tokens

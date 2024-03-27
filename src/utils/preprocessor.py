@@ -1,4 +1,4 @@
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urlsplit, urlunsplit
 import html
 import re
 
@@ -13,8 +13,13 @@ def preprocess_payload(payload):
         # Simplify urls to http://u
         sep = "="
         test = processed_payload.split(sep, 1)[0]
-        # if test != processed_payload:
-        processed_payload = processed_payload.replace(test, "http://u")
+        if test != processed_payload:
+            processed_payload = processed_payload.replace(test, "http://u")
+        else:
+            url = list(urlsplit(processed_payload))
+            url[0] = "http"
+            url[1] = "u"
+            processed_payload = urlunsplit(url)
 
         # Decode HTML entities
         processed_payload = str(html.unescape(processed_payload))

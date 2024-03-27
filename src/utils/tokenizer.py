@@ -23,11 +23,11 @@ def xss_tokenizer(payload):
              | </\w+>
              | <\w+>
              | \b\w+=
+             | \w+:
              | (?<=\()\S+(?=\))
              | <(?<=\<)\S+
              | \) | \>
              ''')
-    # TO ADD: handle &gt and &lt -> PREPROCESSING ATM
 
     tokenizer = RegexpTokenizer(rules)
     tokens = tokenizer.tokenize(payload)

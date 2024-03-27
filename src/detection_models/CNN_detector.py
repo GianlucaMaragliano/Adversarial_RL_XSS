@@ -1,77 +1,15 @@
 if __name__ == "__main__":
     import sys
 
-from datetime import datetime
 import torch
 import torch.nn as nn
-import numpy as np
 from torch.utils.data import Dataset
-import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
 
 from utils.general import process_payloads
-
-
-class XSSDataset(Dataset):
-    class_encoder = LabelEncoder()
-    features_encoder = LabelEncoder()
-    MAX_LENGTH = 30
-
-    def __init__(self, features, labels):
-        encoded_labels = self.class_encoder.fit_transform(labels)
-        self.labels = torch.tensor(encoded_labels).unsqueeze(dim=-1)
-        features = [tokens[:self.MAX_LENGTH] for tokens in features]
-        features = [tokens + ['None'] * (self.MAX_LENGTH - len(tokens)) for tokens in features]
-        encoded_features = [self.features_encoder.fit_transform(tokens) for tokens in features]
-        encoded_features = np.array(encoded_features)
-        self.features = torch.tensor(encoded_features)
-
-    def __len__(self):
-        return len(self.features)
-
-    def __getitem__(self, index):
-        return self.features[index], self.labels[index]
-
-
-class CNNDetector(nn.Module):
-    def __init__(self, vocab_dim, embedding_dim):
-        super(CNNDetector, self).__init__()
-        self.embedding = nn.Embedding(vocab_dim, embedding_dim)
-        self.flatten = nn.Flatten()
-        self.conv1_1 = nn.Conv1d(in_channels=embedding_dim, out_channels=64, kernel_size=4)
-        self.conv1_2 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=4)
-        self.pool = nn.MaxPool1d(kernel_size=2)
-        self.conv2_1 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5)
-        self.conv2_2 = nn.Conv1d(in_channels=128, out_channels=128, kernel_size=5)
-        self.fc1 = nn.Linear(128 * 2, 1)
-
-    def forward(self, x):
-        # print("Input | Expected shape: batch, 200, 1 | Actual shape:", x.shape)
-        x = self.embedding(x)
-        # print("Embedded | Expected shape: batch, 200, 32 | Actual shape:", x.shape)
-        x = x.permute(0, 2, 1)  # swap channels
-        # print("Permuted | Expected shape: batch, 32, 200 | Actual shape:", x.shape)
-        x = F.relu(self.conv1_1(x))
-        # First Conv Layer
-        # print("First Conv | Expected shape: batch, 64, 200 | Actual shape:", x.shape)
-        x = F.relu(self.conv1_2(x))
-        # print("Second Conv | Expected shape: batch, 64, 200 | Actual shape:", x.shape)
-        x = F.relu(self.pool(x))
-        # print("First Pool | Expected shape: batch, 64, 100 | Actual shape:", x.shape)
-        # Second Conv Layer
-        x = F.relu(self.conv2_1(x))
-        # print("Third Conv | Expected shape: batch, 128, 100 | Actual shape:", x.shape)
-        x = F.relu(self.conv2_2(x))
-        # print("Fourth Conv | Expected shape: batch, 128, 100 | Actual shape:", x.shape)
-        x = F.relu(self.pool(x))
-        # print("Second Pool | Expected shape: batch, 128, 50 | Actual shape:", x.shape)
-        x = self.flatten(x)
-        # print("Flattened | Expected shape: batch, 128 * 41 | Actual shape:", x.shape)
-        x = F.relu(self.fc1(x))
-        # print("Fully Connected | Expected shape: batch, 1 | Actual shape:", x.shape)
-        x = F.sigmoid(x)
-        return x
+from XSS_dataset import XSSDataset
+from src.detection_models.classes.CNN import CNNDetector
 
 
 # Set the seed value all over the place to make this reproducible.
@@ -83,7 +21,7 @@ torch.cuda.manual_seed_all(seed_val)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters
-num_epochs = 10
+num_epochs = 150
 batch_size = 16
 learning_rate = 0.001
 
@@ -120,7 +58,8 @@ optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 def train_one_epoch(epoch_index):
     running_loss = 0.0
     last_loss = 0.0
-
+    n_correct = 0
+    n_samples = 0
     for i, (payloads, labels) in enumerate(train_loader):
         # Zero the parameter gradients
         labels = labels.to(torch.float32)
@@ -136,22 +75,34 @@ def train_one_epoch(epoch_index):
 
         # Print statistics
         running_loss += loss.item()
-        if i % 1000 == 999:
-            last_loss = running_loss / 1000
+
+        predicted = torch.round(outputs)
+        n_samples += labels.size(0)
+        n_correct += (predicted == labels).sum().item()
+        if i % 250 == 0:
+            last_loss = running_loss / 250
             print(f"[{epoch_index + 1}, {i + 1}] loss: {last_loss}")
             running_loss = 0.0
-
+    accuracy = 100.0 * n_correct / n_samples
+    print('ACCURACY TRAIN: {}'.format(accuracy))
+    writer.add_scalar('Loss/train', last_loss, 1 + epoch_index)
+    writer.add_scalar('Accuracy/train', accuracy, 1 + epoch_index)
     return last_loss
 
 
-# Initializing in a separate cell so we can easily add more epochs to the same run
-epoch_number = 0
+writer = SummaryWriter('../../runs/CNN_detector')
 
-EPOCHS = 5
+epoch_number = 0
 
 best_vloss = 1_000_000.
 
-for epoch in range(EPOCHS):
+accuracy = 0.0
+last_accuracy = 0.0
+total_repeat = 0
+
+for epoch in range(num_epochs):
+    last_accuracy = accuracy
+
     print('EPOCH {}:'.format(epoch_number + 1))
 
     # Make sure gradient tracking is on, and do a pass over the data
@@ -174,7 +125,8 @@ for epoch in range(EPOCHS):
             vloss = criterion(voutputs, vlabels)
             running_vloss += vloss
 
-            predicted = torch.where(voutputs > 0.51, 1, 0)
+            # predicted = torch.where(voutputs > 0.51, 1, 0)
+            predicted = torch.round(voutputs)
             # print(voutputs, vlabels)
 
             # Accuracy on validation
@@ -182,36 +134,50 @@ for epoch in range(EPOCHS):
             n_samples += vlabels.size(0)
             n_correct += (predicted == vlabels).sum().item()
     accuracy = 100.0 * n_correct / n_samples
-
     avg_vloss = running_vloss / (i + 1)
-    print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
-    print('ACCURACY: {}'.format(accuracy))
 
-    # Track the best performance, and save the model's state
-    if avg_vloss < best_vloss:
-        best_vloss = avg_vloss
-        # model_path = 'model_{}_{}'.format(timestamp, epoch_number)
-        # torch.save(model.state_dict(), model_path)
+    writer.add_scalar('Loss/valid', avg_vloss, 1 + epoch_number)
+    writer.add_scalar('Accuracy/valid', accuracy, 1 + epoch_number)
+
+    # print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
+    print('ACCURACY VALIDATION: {}'.format(accuracy))
+    print()
+
+    if accuracy <= last_accuracy:
+        total_repeat += 1
+        if total_repeat == 5:
+            print("Early stopping")
+            break
+    else:
+        total_repeat = 0
 
     epoch_number += 1
+print("Finished training")
 
-# Train the model
-# total_step = len(train_loader)
-# for epoch in range(num_epochs):
-#     for i, (x_f, y_f) in enumerate(train_loader):
-#         x_f = x_f.to(device)
-#         y_f = y_f.to(device).to(torch.float32)
+# Save the model
+torch.save({'epoch': epoch_number, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(),
+            'loss': avg_loss}, "../../models/CNN_detector.pth")
+
+# Test the model
+# test_set = pd.read_csv("../../data/test.csv").sample(frac=1)
+# test_cleaned_tokenized_payloads = process_payloads(test_set)[1]
+# test_class_labels = test_set['Class']
+# test_dataset = XSSDataset(test_cleaned_tokenized_payloads, test_class_labels)
+# test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=True)
+
+# model.eval()
+# with torch.no_grad():
+#     n_correct = 0
+#     n_samples = 0
+#     for i, tdata in enumerate(test_loader):
+#         tinputs, tlabels = tdata
+#         tlabels = tlabels.to(torch.float32)
+#         toutputs = model(tinputs)
 #
-#         # Forward pass
-#         outputs = model(x_f)
-#         loss = criterion(outputs, y_f)
+#         predicted = torch.round(toutputs)
 #
-#         # Backward and optimize
-#         optimizer.zero_grad()
-#         loss.backward()
-#         optimizer.step()
-#
-#         if (i + 1) % 100 == 0:
-#             print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-#                   .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
-# print("Finished Training")
+#         n_samples += tlabels.size(0)
+#         n_correct += (predicted == tlabels).sum().item()
+# accuracy = 100.0 * n_correct / n_samples
+# print('TEST ACCURACY: {}'.format(accuracy))
+

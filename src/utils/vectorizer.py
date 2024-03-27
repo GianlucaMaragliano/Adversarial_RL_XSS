@@ -9,12 +9,11 @@ global vectorizer
 
 
 def xss_payloads_vectorizer(processed_payloads, tokenized_payloads):
+    percent = 0.05
     # Get number of different tokens
     token_size = (len(set(chain.from_iterable(tokenized_payloads))))
-
-    # Set max_features to 10% of the number of different tokens
-    max_features = int(token_size * 0.05)
-
+    # Set max_features to % of the number of different tokens
+    max_features = int(token_size * percent)
     global vectorizer
     vectorizer = TfidfVectorizer(tokenizer=xss_tokenizer, max_features=max_features)
     x_tfidf = vectorizer.fit_transform(processed_payloads)
