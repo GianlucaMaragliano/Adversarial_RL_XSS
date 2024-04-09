@@ -66,6 +66,5 @@ print("Wrong MLP predictions:", f"{wrong_MLP_predictions.shape[0]}/{test_set.sha
 print("CNN Accuracy:", (1 - wrong_CNN_predictions.shape[0] / test_set.shape[0]) * 100, "%")
 print("MLP Accuracy:", (1 - wrong_MLP_predictions.shape[0] / test_set.shape[0]) * 100, "%")
 
-CNN_model.eval()
 summary(CNN_model)  # CNN model summary
 summary(MLP_model)  # MLP model summary

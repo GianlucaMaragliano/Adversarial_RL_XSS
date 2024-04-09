@@ -7,8 +7,13 @@ import importlib
 import importlib.util
 
 
+javascript_injects = r'[&NewLine;|&#x09|&colon;|&Tab;]*'
+javascript_injected = rf'j{javascript_injects}a{javascript_injects}v{javascript_injects}a{javascript_injects}s{javascript_injects}c{javascript_injects}r{javascript_injects}i{javascript_injects}p{javascript_injects}t'
+print(javascript_injected)
+
+
 def match_javascript(payload):
-    return re.search(r'j[\D\d]*a[\D\d]*v[\D\d]*a[\D\d]*s[\D\d]*c[\D\d]*r[\D\d]*i[\D\d]*p[\D\d]*t', payload)
+    return re.search(javascript_injected, payload)
 
 
 def inject_javascript(payload, injection):
@@ -20,9 +25,9 @@ def inject_javascript(payload, injection):
     # inject at random position
     length = len(parts[pos])
     new_part = parts[pos][:length // 2] + injection + parts[pos][length // 2:]
-    print(parts[pos])
-    print(new_part)
-    print()
+    # print(parts[pos])
+    # print(new_part)
+    # print()
     return re.sub(parts[pos], new_part, payload)
 
 
@@ -61,8 +66,14 @@ def action_4(payload):
 
 # Remove closing symbols of the single tags
 def action_5(payload):
+    tag_match = re.search(r'<([a-z]+)(?![^>]*\/>)[^>]*>|<\w+>', payload)
+    if tag_match:
+        tag = tag_match.group(0)
+        content = re.search(r'(?<=<)\w+', tag).group(0)
+        closing_tag = re.search(r'</' + content + '>', payload)
+        if closing_tag is None:
+            return re.sub(tag, tag[:-1] + " ", payload)
     return payload
-    pass
 
 
 # Add "&NewLine;" to "javascript"
@@ -71,7 +82,7 @@ def action_6(payload):
         char = match.group(0)
         return inject_javascript(char, '&NewLine;')
 
-    return re.sub(r'javascript', inject, payload)
+    return re.sub(javascript_injected, inject, payload)
 
 
 # Add "&#x09" to "javascript"
@@ -80,7 +91,7 @@ def action_7(payload):
         char = match.group(0)
         return inject_javascript(char, '&#x09')
 
-    return re.sub(r'javascript', inject, payload)
+    return re.sub(javascript_injected, inject, payload)
 
 
 # HTML entity encoding for JS code (hexadecimal)
@@ -134,7 +145,7 @@ def action_12(payload):
         char = match.group(0)
         return inject_javascript(char, '&colon;')
 
-    return re.sub(r'javascript', inject, payload)
+    return re.sub(javascript_injected, inject, payload)
 
 
 # Add "&Tab" to "javascript"
@@ -143,7 +154,7 @@ def action_13(payload):
         char = match.group(0)
         return inject_javascript(char, '&Tab;')
 
-    return re.sub(r'javascript', inject, payload)
+    return re.sub(javascript_injected, inject, payload)
 
 
 #  Add string "/drfv/" after the script tag
@@ -183,7 +194,14 @@ def action_19(payload):
 
 # Replace ">" of single label with "<"
 def action_20(payload):
-    return re.sub(r'<\w+>', lambda x: x.group(0).replace('>', '<'), payload)
+    tag_match = re.search(r'<([a-z]+)(?![^>]*\/>)[^>]*>|<\w+>', payload)
+    if tag_match:
+        tag = tag_match.group(0)
+        content = re.search(r'(?<=<)\w+', tag).group(0)
+        closing_tag = re.search(r'</' + content + '>', payload)
+        if closing_tag is None:
+            return re.sub(tag, tag[:-1] + "<", payload)
+    return payload
 
 
 # Replace "alert" with "top['al'+'ert'](1)"
@@ -251,7 +269,7 @@ def main():
         print(f"Action {i}", action(ex_2))
         print(f"Action {i}", action(ex_3))
         print(f"Action {i}", action('https://<script>alert("1")</script>'))
-        print(f"Action {i}", action('https://<script src=ciao>alert("1")</script>'))
+        print(f"Action {i}", action('https://<script src=ciao>alert("1")'))
         print(f"Action {i}", action('javascript'))
         print(f"Action {i}", action('java&#x09scr&NewLine;ipt'))
         print()
@@ -273,7 +291,7 @@ def main():
         for mutator in mutators:
             ex = mutator(ex)
         data_set.at[i, "Mutated Payload"] = ex
-    data_set.to_csv('../../data/train_mutated.csv', index=False)
+    # data_set.to_csv('../../data/train_mutated.csv', index=False)
 
 
 if __name__ == '__main__':
