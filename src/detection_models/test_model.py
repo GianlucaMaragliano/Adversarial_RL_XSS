@@ -62,9 +62,39 @@ wrong_CNN_predictions = test_set[test_set["Wrong CNN Prediction"]]
 wrong_MLP_predictions = test_set[test_set["Wrong MLP Prediction"]]
 print("Wrong CNN predictions:", f"{wrong_CNN_predictions.shape[0]}/{test_set.shape[0]}")
 print("Wrong MLP predictions:", f"{wrong_MLP_predictions.shape[0]}/{test_set.shape[0]}")
+print()
 
-print("CNN Accuracy:", (1 - wrong_CNN_predictions.shape[0] / test_set.shape[0]) * 100, "%")
-print("MLP Accuracy:", (1 - wrong_MLP_predictions.shape[0] / test_set.shape[0]) * 100, "%")
+print("CNN Accuracy:", round((1 - wrong_CNN_predictions.shape[0] / test_set.shape[0]) * 100, 2), "%")
+
+CNN_true_positives = test_set[(test_set["CNN_Prediction"] == "Malicious") & (test_set["Class"] == "Malicious")].shape[0]
+CNN_true_negatives = test_set[(test_set["CNN_Prediction"] == "Benign") & (test_set["Class"] == "Benign")].shape[0]
+CNN_false_positives = test_set[(test_set["CNN_Prediction"] == "Malicious") & (test_set["Class"] == "Benign")].shape[0]
+CNN_false_negatives = test_set[(test_set["CNN_Prediction"] == "Benign") & (test_set["Class"] == "Malicious")].shape[0]
+
+CNN_precision = CNN_true_positives / (CNN_true_positives + CNN_false_positives)
+CNN_recall = CNN_true_positives / (CNN_true_positives + CNN_false_negatives)
+CNN_f1 = 2 * (CNN_precision * CNN_recall) / (CNN_precision + CNN_recall)
+
+print("CNN Precision:", f"{(CNN_precision * 100):.2f}%")
+print("CNN Recall:", f"{(CNN_recall * 100):.2f}%")
+print("CNN F1 Score:", f"{(CNN_f1 * 100):.2f}%")
+print()
+
+print("MLP Accuracy:", round((1 - wrong_MLP_predictions.shape[0] / test_set.shape[0]) * 100, 2), "%")
+
+MLP_true_positives = test_set[(test_set["MLP_Prediction"] == "Malicious") & (test_set["Class"] == "Malicious")].shape[0]
+MLP_true_negatives = test_set[(test_set["MLP_Prediction"] == "Benign") & (test_set["Class"] == "Benign")].shape[0]
+MLP_false_positives = test_set[(test_set["MLP_Prediction"] == "Malicious") & (test_set["Class"] == "Benign")].shape[0]
+MLP_false_negatives = test_set[(test_set["MLP_Prediction"] == "Benign") & (test_set["Class"] == "Malicious")].shape[0]
+
+MLP_precision = MLP_true_positives / (MLP_true_positives + MLP_false_positives)
+MLP_recall = MLP_true_positives / (MLP_true_positives + MLP_false_negatives)
+MLP_f1 = 2 * (MLP_precision * MLP_recall) / (MLP_precision + MLP_recall)
+
+print("MLP Precision:", f"{(MLP_precision * 100):.2f}%")
+print("MLP Recall:", f"{(MLP_recall * 100):.2f}%")
+print("MLP F1 Score:", f"{(MLP_f1 * 100):.2f}%")
+print()
 
 summary(CNN_model)  # CNN model summary
 summary(MLP_model)  # MLP model summary
