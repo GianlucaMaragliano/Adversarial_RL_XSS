@@ -1,6 +1,7 @@
 from urllib.parse import unquote_plus, urlsplit, urlunsplit
 import html
 import re
+import validators
 
 
 def preprocess_payload(payload):
@@ -16,10 +17,11 @@ def preprocess_payload(payload):
         if test != processed_payload:
             processed_payload = processed_payload.replace(test, "http://u")
         else:
-            url = list(urlsplit(processed_payload))
-            url[0] = "http"
-            url[1] = "u"
-            processed_payload = urlunsplit(url)
+            if validators.url(processed_payload):
+                url = list(urlsplit(processed_payload))
+                url[0] = "http"
+                url[1] = "u"
+                processed_payload = urlunsplit(url)
 
         # Decode HTML entities
         processed_payload = str(html.unescape(processed_payload))
