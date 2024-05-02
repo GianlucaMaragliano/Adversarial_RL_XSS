@@ -157,28 +157,6 @@ writer.flush()
 writer.close()
 
 # Save the model
-torch.save({'epoch': epoch_number, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(),
-            'loss': avg_loss}, "../../models/MLP_detector.pth")
+# torch.save({'epoch': epoch_number, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(),
+#             'loss': avg_loss}, "../../models/MLP_detector.pth")
 
-# Test the model
-# test_set = pd.read_csv("../../data/test.csv").sample(frac=1)
-# test_cleaned_tokenized_payloads = process_payloads(test_set)[1]
-# test_class_labels = test_set['Class']
-# test_dataset = XSSDataset(test_cleaned_tokenized_payloads, test_class_labels)
-# test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=True)
-
-# model.eval()
-# with torch.no_grad():
-#     n_correct = 0
-#     n_samples = 0
-#     for i, tdata in enumerate(test_loader):
-#         tinputs, tlabels = tdata
-#         tlabels = tlabels.to(torch.float32)
-#         toutputs = model(tinputs)
-#
-#         predicted = torch.round(toutputs)
-#
-#         n_samples += tlabels.size(0)
-#         n_correct += (predicted == tlabels).sum().item()
-# accuracy = 100.0 * n_correct / n_samples
-# print('TEST ACCURACY: {}'.format(accuracy))
