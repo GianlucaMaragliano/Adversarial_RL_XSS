@@ -19,6 +19,9 @@ dvc = "^3.48.3"
 dvc-gdrive = "^3.0.1"
 tensorboard = "^2.16.2"
 torchinfo = "^1.8.0"
+gymnasium = "^0.29.1"
+stable-baselines3 = {extras = ["extra"], version = "^2.3.0"}
+validators = "^0.28.0"
 
 
 [build-system]
