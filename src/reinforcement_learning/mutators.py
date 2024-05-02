@@ -6,13 +6,47 @@ import html
 import importlib
 import importlib.util
 
-
 javascript_injects = r'[&NewLine;|&#x09|&colon;|&Tab;]*'
 javascript_injected = rf'j{javascript_injects}a{javascript_injects}v{javascript_injects}a{javascript_injects}s{javascript_injects}c{javascript_injects}r{javascript_injects}i{javascript_injects}p{javascript_injects}t'
-print(javascript_injected)
+opening_bracket = r'<(?:&#(?:60|0*3[46]);)?'
+# html_tag = rf'{opening_bracket}([a-z]+)(?![^>]*\/>)[^>]*>|{opening_bracket}\w+>|{opening_bracket}\/\w+>'
+html_tag = r'<.+?>|%3c.+?%3e|&lt;.+?&gt;'
+js_tag = rf'{opening_bracket}script(?:&#(?:60|0*3[46]);)?'
+
+benign_set = pd.read_csv('../../data/train.csv')
+benign_set = benign_set[benign_set['Class'] == "Benign"]
+
+
+def find_safe_positions(char):
+    # Define characters for < and >
+    lt_chars = ['<']
+    gt_chars = ['>']
+
+    # Define HTML entity equivalents for < and >
+    lt_entities = ['%3c', '&lt;']
+    gt_entities = ['%3e', '&gt;']
+
+    # Find safe positions where to inject %00
+    safe_positions = []
+    for pos, c in enumerate(char):
+        # After spaces
+        if c == ' ':
+            safe_positions.append(pos + 1)
+        # After < or its HTML entity equivalents
+        elif c in lt_chars or char[pos:pos + 3] == "%3c":
+            safe_positions.append(pos + 3)
+        elif char[pos:pos + 4] == "&lt;":
+            safe_positions.append(pos+4)
+        # Before > or its HTML entity equivalents
+        elif c in gt_chars or char[pos:pos + 4] in gt_entities:
+            safe_positions.append(pos)
+    return safe_positions
 
 
 def match_javascript(payload):
+    is_js_tag = re.search(js_tag, payload)
+    if is_js_tag:
+        return True
     return re.search(javascript_injected, payload)
 
 
@@ -56,23 +90,27 @@ def action_2(payload):
 
 # Replace spaces with "/", "%0A", or "%0D"
 def action_3(payload):
-    return re.sub(r'\s', random.choice(['/', '%0A', '%0D']), payload)
+    return re.sub(r'\s', random.choice(['/ ', '%0A ', '%0D ']), payload)
 
 
 # Mixed case HTML tags
 def action_4(payload):
-    return re.sub(r'<([a-z]+)(?![^>]*\/>)[^>]*>|<\w+>|</\w+>', random_case, payload)
+    return re.sub(html_tag, random_case, payload)
 
 
 # Remove closing symbols of the single tags
 def action_5(payload):
-    tag_match = re.search(r'<([a-z]+)(?![^>]*\/>)[^>]*>|<\w+>', payload)
+    tag_pattern = r'<([a-z]+)(?![^>]*\/>)[^>]*>'
+    tag_match = re.search(tag_pattern, payload)
     if tag_match:
         tag = tag_match.group(0)
-        content = re.search(r'(?<=<)\w+', tag).group(0)
-        closing_tag = re.search(r'</' + content + '>', payload)
-        if closing_tag is None:
-            return re.sub(tag, tag[:-1] + " ", payload)
+        content_match = re.search(r'(?<=<)\w+', tag)
+        if content_match:
+            content = content_match.group(0)
+            closing_tag = re.search(r'</' + content + '>', payload)
+            if closing_tag is None:
+                modified_payload = tag[:-1] + " "  # Remove closing symbol and append a space
+                return re.sub(tag_pattern, modified_payload, payload)
     return payload
 
 
@@ -104,6 +142,7 @@ def action_8(payload):
         for c in char:
             string += '&#x' + hex(ord(c))[2:] + ';'
         return string + '('
+
     if javascript_protocol:
         return re.sub(r'(?x)[\w\.]+?\(', encode_hex, payload)
     return payload
@@ -115,7 +154,7 @@ def action_9(payload):
         char = match.group(0)
         return char + char
 
-    return re.sub(r'<\w+>|</\w+>', duplicate_tag, payload)
+    return re.sub(html_tag, duplicate_tag, payload)
 
 
 # Replace "http://" with "//"
@@ -159,7 +198,7 @@ def action_13(payload):
 
 #  Add string "/drfv/" after the script tag
 def action_14(payload):
-    return re.sub(r'<script>', '<script>/drfv/', payload)
+    return re.sub(r'<script>|%3cscript%3e|&ltscript&gt', '<script>/drfv/', payload)
 
 
 # Replace "(" and ")" with grave note
@@ -181,8 +220,9 @@ def action_17(payload):
     return re.sub(r'["\']', '', payload)
 
 
-# Unicode encoding for JS code
+# Unicode encoding for JS code -> TO REMOVE ?
 def action_18(payload):
+
     return payload
     pass
 
@@ -194,13 +234,17 @@ def action_19(payload):
 
 # Replace ">" of single label with "<"
 def action_20(payload):
-    tag_match = re.search(r'<([a-z]+)(?![^>]*\/>)[^>]*>|<\w+>', payload)
+    tag_pattern = r'<([a-z]+)(?![^>]*\/>)[^>]*>'
+    tag_match = re.search(tag_pattern, payload)
     if tag_match:
         tag = tag_match.group(0)
-        content = re.search(r'(?<=<)\w+', tag).group(0)
-        closing_tag = re.search(r'</' + content + '>', payload)
-        if closing_tag is None:
-            return re.sub(tag, tag[:-1] + "<", payload)
+        content_match = re.search(r'(?<=<)\w+', tag)
+        if content_match:
+            content = content_match.group(0)
+            closing_tag = re.search(r'</' + content + '>', payload)
+            if closing_tag is None:
+                modified_payload = tag[:-1] + "<"  # Remove closing symbol and append a space
+                return re.sub(tag_pattern, modified_payload, payload)
     return payload
 
 
@@ -216,19 +260,32 @@ def action_22(payload):
 
 # Add interference string before the example
 def action_23(payload):
+    first_html_tag = re.search(html_tag, payload)
+    # add random benign payload before the first tag
+    if first_html_tag:
+        benign_payload = benign_set.sample()["Payloads"].values[0]
+        # get content after the last "/" of the benign payload
+        last_slash = benign_payload.rfind("/")
+        # get the content after the last "/" of the benign payload
+        benign_payload = benign_payload[last_slash + 1:]
+        # Add the benign payload before the first tag
+        payload = payload[:first_html_tag.start()] + benign_payload + payload[first_html_tag.start():]
     return payload
-    pass
 
 
 # Add comment into tags
 def action_24(payload):
     def add_comment(match):
         char = match.group(0)
-        length = len(char)
-        pos = random.randint(1, length - 1)
-        return char[:pos] + "<!-- Comment -->" + char[pos:]
+        # find safe position where to inject, meaning not into a word
+        safe_positions = find_safe_positions(char)
+        # Choose a random safe position to inject
+        if safe_positions:
+            pos = random.choice(safe_positions)
+            return char[:pos] + "<!--Comment-->" + char[pos:]
+        return char
 
-    return re.sub(r'<([a-z]+)(?![^>]*\/>)[^>]*>|<\w+>|</\w+>', add_comment, payload)
+    return re.sub(html_tag, add_comment, payload)
 
 
 # "vbscript" replaces "javascript"
@@ -240,11 +297,24 @@ def action_25(payload):
 def action_26(payload):
     def inject_byte(match):
         char = match.group(0)
-        length = len(char)
-        pos = random.randint(1, length - 1)
-        return char[:pos] + "%00" + char[pos:]
+        # Define characters for < and >
+        lt_chars = ['<']
+        gt_chars = ['>']
 
-    return re.sub(r'<([a-z]+)(?![^>]*\/>)[^>]*>|<\w+>|</\w+>', inject_byte, payload)
+        # Define HTML entity equivalents for < and >
+        lt_entities = ['%3c', '&lt;']
+        gt_entities = ['%3e', '&gt;']
+
+        # Find safe positions where to inject %00
+        safe_positions = find_safe_positions(char)
+
+        # Choose a random safe position to inject %00
+        if safe_positions:
+            pos = random.choice(safe_positions)
+            return char[:pos] + "%00" + char[pos:]
+        return char
+
+    return re.sub(html_tag, inject_byte, payload)
 
 
 # Replace alert with "top[/al/.source+/ert/.source/](1)"
@@ -277,21 +347,28 @@ def main():
     # Generate array of random mutators of random length
     mutators = [globals()[f"action_{random.randint(2, 27)}"] for _ in range(random.randint(1, 5))]
     # Apply each mutation to the example
-    ex = ex_2
-    print(ex)
-    for mutator in mutators:
-        ex = mutator(ex)
+    # ex = ex_2
+    # print(ex)
+    # for mutator in mutators:
+    #     ex = mutator(ex)
+    #     print(ex)
+
+    #  Apply action 26 more times
+    ex = 'https://%3cscript src=ciao%3ealert("1")'
+    # ex = example
+    for _ in range(10):
+        ex = action_26(ex)
         print(ex)
 
-    data_set["Mutated Payload"] = None
-    # Generate random mutations and save the mutated examples
-    for i, row in data_set.iterrows():
-        mutators = [globals()[f"action_{random.randint(2, 27)}"] for _ in range(random.randint(1, 5))]
-        ex = row["Payloads"]
-        for mutator in mutators:
-            ex = mutator(ex)
-        data_set.at[i, "Mutated Payload"] = ex
-    # data_set.to_csv('../../data/train_mutated.csv', index=False)
+    # data_set["Mutated Payload"] = None
+    # # Generate random mutations and save the mutated examples
+    # for i, row in data_set.iterrows():
+    #     mutators = [globals()[f"action_{random.randint(2, 27)}"] for _ in range(random.randint(1, 5))]
+    #     ex = row["Payloads"]
+    #     for mutator in mutators:
+    #         ex = mutator(ex)
+    #     data_set.at[i, "Mutated Payload"] = ex
+    # # data_set.to_csv('../../data/train_mutated.csv', index=False)
 
 
 if __name__ == '__main__':
