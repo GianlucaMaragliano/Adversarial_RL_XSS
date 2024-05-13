@@ -21,7 +21,7 @@ def xss_tokenizer(payload):
              | \'\w+?\'
              | http://\w+
              | </\w+>
-             | <\w+>
+             | <.+?>
              | \b\w+=
              | \w+:
              | (?<=\()\S+(?=\))

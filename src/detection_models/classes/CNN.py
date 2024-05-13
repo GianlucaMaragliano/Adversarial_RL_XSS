@@ -37,7 +37,7 @@ class CNNDetector(nn.Module):
         # print("Second Pool | Expected shape: [batch, 128, 50] | Actual shape:", x.shape)
         x = self.flatten(x)
         # print("Flattened | Expected shape: [batch, 128 * 41] | Actual shape:", x.shape)
-        x = F.relu(self.fc1(x))
+        x = self.fc1(x)
         # print("Fully Connected | Expected shape: [batch, 1] | Actual shape:", x.shape)
         x = F.sigmoid(x)
         return x

