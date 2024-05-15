@@ -51,6 +51,8 @@ if __name__ == '__main__':
                 detected.append(False)
             init_payloads.append(init_payload)
             init_payloads_tokenized.append(process_payloads(xss_df, env.common_tokens)[1])
+            xss_df = pd.DataFrame([env.state], columns=['Payloads'])
+            xss_df['Class'] = "Malicious"
             mutated_payloads.append(env.state)
             mutated_payloads_tokenized.append(process_payloads(xss_df, env.common_tokens)[1])
     print(f"Breakthrough: {breakthrough}/{episodes}, {breakthrough/episodes*100:.2f}%")
