@@ -98,3 +98,15 @@ print()
 
 summary(CNN_model)  # CNN model summary
 summary(MLP_model)  # MLP model summary
+
+
+test_case = "<script>alert('hi')</script>"
+test_case_df = pd.DataFrame([test_case], columns=['Payloads'])
+test_case_df['Class'] = "Malicious"
+
+_, test_case_tokenized = process_payloads(test_case_df, sorted_tokens)
+print(test_case_tokenized)
+test_case_dataset = XSSDataset(test_case_tokenized, test_case_df['Class'])
+test_case_data = test_case_dataset[0][0][None, ...]
+
+MLP_output = MLP_model(test_case_data)
