@@ -9,7 +9,8 @@ global vectorizer
 
 
 def xss_payloads_vectorizer(processed_payloads, tokenized_payloads):
-    percent = 0.05
+    # Percentage of dictionary to keep, originally 5%, in paper 10%
+    percent = 0.1
     # Get number of different tokens
     token_size = (len(set(chain.from_iterable(tokenized_payloads))))
     # Set max_features to % of the number of different tokens

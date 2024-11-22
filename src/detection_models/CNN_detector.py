@@ -156,6 +156,6 @@ print("Finished training")
 
 # Save the model
 torch.save({'epoch': epoch_number, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(),
-            'loss': avg_loss}, "../../models/CNN_detector.pth")
+            'loss': avg_loss}, "../../reproduction/models/CNN_detector.pth")
 
 

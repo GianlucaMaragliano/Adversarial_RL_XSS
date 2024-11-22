@@ -18,7 +18,7 @@ class MLPDetector(nn.Module):
     def forward(self, x):
         # print("Input | Expected shape: [batch, 30, 1] | Actual shape:", x.shape)
         x = self.embedding(x)
-        print("Embedded | Expected shape: [batch, 30, 8] | Actual shape:", x.shape)
+        # print("Embedded | Expected shape: [batch, 30, 8] | Actual shape:", x.shape)
         x = x.permute(0, 2, 1)
         # print("Permuted | Expected shape: [batch, 8, 30] | Actual shape:", x.shape)
         x = self.flatten(x)

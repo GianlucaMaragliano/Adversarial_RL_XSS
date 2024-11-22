@@ -158,5 +158,5 @@ writer.close()
 
 # Save the model
 torch.save({'epoch': epoch_number, 'model_state_dict': model.state_dict(), 'optimizer_state_dict': optimizer.state_dict(),
-            'loss': avg_loss}, "../../models/MLP_detector.pth")
+            'loss': avg_loss}, "../../reproduction/models/MLP_detector.pth")
 
