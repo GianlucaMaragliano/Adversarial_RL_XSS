@@ -31,6 +31,14 @@ def get_sorted_tokens(x_tfidf):
 
     # Create a DataFrame and Sort Tokens by TF-IDF Score
     df_tfidf = pd.DataFrame(total_tfidf_scores, columns=feature_names)
-    sorted_tokens = df_tfidf.sum().sort_values(ascending=False).index.tolist()
+
+    # Sort tokens by TF-IDF score into dataframe
+    sorted_tokens_df = df_tfidf.sum().sort_values(ascending=False)
+
+    # # if not present, save sorted tokens df into the vocabolary csv file
+    # sorted_tokens_df.to_csv('../../reproduction/data/vocabolary.csv')
+
+    # return sorted tokens
+    sorted_tokens = sorted_tokens_df.index.tolist()
 
     return sorted_tokens

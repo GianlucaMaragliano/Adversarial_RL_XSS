@@ -198,7 +198,7 @@ def action_13(payload):
 
 #  Add string "/drfv/" after the script tag
 def action_14(payload):
-    return re.sub(r'<script>|%3cscript%3e|&ltscript&gt', '<script>/drfv/', payload, flags=re.IGNORECASE)
+    return re.sub(r'<script>', '<script>/drfv/', payload, flags=re.IGNORECASE)
 
 
 # Replace "(" and ")" with grave note
@@ -273,7 +273,7 @@ def action_23(payload):
     first_html_tag = re.search(html_tag, payload)
     # add random benign payload before the first tag
     if first_html_tag:
-        benign_payload = benign_set.sample()["Payloads"].values[0]
+        benign_payload = benign_set.sample()["Payloads"].values[0] + ' '
         # get content after the last "/" of the benign payload
         last_slash = benign_payload.rfind("/")
         # get the content after the last "/" of the benign payload
@@ -326,7 +326,7 @@ def action_27(payload):
 
 
 def main():
-    data_set = pd.read_csv('../../data/train.csv')
+    data_set = pd.read_csv("../../data/adv_xss.txt", header=None, names=['Payloads'], on_bad_lines='skip')
     example = data_set.head()["Payloads"][0]
     ex_2 = data_set["Payloads"][216]
     ex_3 = data_set["Payloads"][8344]

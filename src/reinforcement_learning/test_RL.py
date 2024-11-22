@@ -7,8 +7,9 @@ from src.reinforcement_learning.RL import DetectorEnv
 
 if __name__ == '__main__':
 
-    test_set = pd.read_csv("../../data/test.csv")
-    test_set = test_set[test_set['Class'] == "Malicious"]
+    # test_set = pd.read_csv("../../data/test.csv")
+    # test_set = test_set[test_set['Class'] == "Malicious"]
+    test_set = pd.read_csv("../../data/adv_xss.txt", header=None, names=['Payloads'], on_bad_lines='skip')
     episodes = test_set.shape[0]
 
     print("Number of episodes:", episodes)
@@ -16,7 +17,7 @@ if __name__ == '__main__':
     env = DetectorEnv(test=True)
 
     PPO_path = "../../models/PPO_model"
-    model = PPO.load(PPO_path+"_2", env=env)
+    model = PPO.load(PPO_path+"_test", env=env)
 
     mutated_attacks_df = pd.DataFrame(columns=['Initial Payload', 'Initial Payload Tokenized', 'Mutated Payload', 'Mutated Payload Tokenized', 'Not Detected'])
     init_payloads = []
@@ -64,4 +65,4 @@ if __name__ == '__main__':
     mutated_attacks_df['Mutated Payload Tokenized'] = mutated_payloads_tokenized
     mutated_attacks_df['Not Detected'] = detected
 
-    mutated_attacks_df.to_csv("../../data/mutated_attacks.csv", index=False)
+    # mutated_attacks_df.to_csv("../../data/mutated_attacks_test.csv", index=False)

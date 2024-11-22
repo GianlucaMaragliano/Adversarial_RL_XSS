@@ -14,20 +14,23 @@ from src.detection_models.utils.general import process_payloads
 
 from src.reinforcement_learning import mutators
 
+root_dir = "../../reproduction"
 
 def load_detection_models():
     vector_size = 8
 
-    train_set = pd.read_csv("../../data/train.csv").sample(frac=1)
-    sorted_tokens, train_cleaned_tokenized_payloads = process_payloads(train_set)
+    train_set = pd.read_csv("../../data/adv_xss.txt", header=None, names=['Payloads'], on_bad_lines='skip')
+    _, train_cleaned_tokenized_payloads = process_payloads(train_set)
+
+    sorted_tokens = pd.read_csv(root_dir + "/data/vocabulary.csv")['tokens'].tolist()
     vocab_size = len(sorted_tokens)
 
     CNN_model = CNNDetector(vocab_size, vector_size)
-    CNN_checkpoint = torch.load("../../models/CNN_detector.pth")
+    CNN_checkpoint = torch.load(root_dir+"/models/CNN_detector.pth")
     CNN_model.load_state_dict(CNN_checkpoint['model_state_dict'])
 
     MLP_model = MLPDetector(vocab_size, vector_size)
-    MLP_checkpoint = torch.load("../../models/MLP_detector.pth")
+    MLP_checkpoint = torch.load(root_dir+"/models/MLP_detector.pth")
     MLP_model.load_state_dict(MLP_checkpoint['model_state_dict'])
 
     return CNN_model, MLP_model, sorted_tokens
@@ -41,11 +44,13 @@ class DetectorEnv(Env):
         self.max_steps = 15
         # Array of actions taken
         self.actions_taken = np.zeros(self.max_steps, dtype=np.int32)
+
         # Observation space represents confidence scores of the CNN and MLP models and past action list
         # self.observation_space = Dict({"confidence": Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32),
         #                                "actions": Box(low=0, high=27, shape=(self.max_steps,), dtype=np.int32),
         #                                "string": Box(low=-10, high=10, shape=(1, 30, 8), dtype=np.float32)})
         # self.observation_space = Dict({"actions": Box(low=0, high=27, shape=(self.max_steps,), dtype=np.int32)})
+
         self.observation_space = Box(low=-10, high=10, shape=(1, 30, 8), dtype=np.float32)
         # Current state is the current XSS example status
         self.state = "https://<script>alert('1')</script>"
@@ -55,11 +60,17 @@ class DetectorEnv(Env):
         self.current_step = 0
         # Initial last scores for each model is 1 = Malicious
         self.last_cnn_score, self.last_mlp_score = 1, 1
+
         # Load the training set and test set
-        df = pd.read_csv("../../data/train.csv")
-        self.train_set = df[df['Class'] == "Malicious"].sample(frac=1, random_state=42)
-        df = pd.read_csv("../../data/test.csv")
-        self.test_set = df[df['Class'] == "Malicious"]
+        # df = pd.read_csv("../../data/train.csv")
+        df = pd.read_csv("../../data/adv_xss.txt", header=None, names=['Payloads'], on_bad_lines='skip')
+        # self.train_set = df[df['Class'] == "Malicious"].sample(frac=1, random_state=42)
+        # self.train_set = df.sample(frac=1, random_state=42)
+        self.train_set = df
+
+        # df = pd.read_csv("../../data/test.csv")
+        # self.test_set = df[df['Class'] == "Malicious"]
+        self.test_set = df
         self.test = test
         self.episode = -1
 

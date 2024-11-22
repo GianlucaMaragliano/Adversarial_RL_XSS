@@ -35,8 +35,8 @@ if __name__ == '__main__':
     check_env(env)
 
     # model = SAC("MultiInputPolicy", env, verbose=1, batch_size=1)
-    # model = PPO("MlpPolicy", env, verbose=1)
-    model = PPO.load(PPO_path+"_2", env=env)
+    model = PPO("MlpPolicy", env, verbose=1)
+    # model = PPO.load(PPO_path+"_2", env=env)
     # model = SAC.load(SAC_path+"_5", env=env)
     # del model
     model.learn(total_timesteps=20000)
@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     # Save the model
 
-    model.save(PPO_path+"_2")
+    model.save(PPO_path+"_test")
     # model.save(PPO_path)
 
     for episode in range(2*episodes):

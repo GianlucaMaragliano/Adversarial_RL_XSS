@@ -29,6 +29,10 @@ vector_size = 8
 
 train_set = pd.read_csv("../../data/train.csv").sample(frac=1)
 sorted_tokens, train_cleaned_tokenized_payloads = process_payloads(train_set)
+
+# Save sorted tokens in file vocabulary.csv
+pd.DataFrame({"tokens": sorted_tokens}).to_csv('../../reproduction/data/vocabulary.csv')
+
 print("Input length:", len(train_cleaned_tokenized_payloads))
 
 train_class_labels = train_set['Class']
@@ -85,12 +89,12 @@ def train_one_epoch(epoch_index):
             running_loss = 0.0
     accuracy = 100.0 * n_correct / n_samples
     print('ACCURACY TRAIN: {}'.format(accuracy))
-    writer.add_scalar('Loss/train', last_loss, 1 + epoch_index)
-    writer.add_scalar('Accuracy/train', accuracy, 1 + epoch_index)
+    # writer.add_scalar('Loss/train', last_loss, 1 + epoch_index)
+    # writer.add_scalar('Accuracy/train', accuracy, 1 + epoch_index)
     return last_loss
 
 
-writer = SummaryWriter('../../runs/CNN_detector')
+# writer = SummaryWriter('../../runs/CNN_detector')
 
 epoch_number = 0
 
