@@ -10,7 +10,7 @@ import pandas as pd
 from utils.general import process_payloads
 from XSS_dataset import XSSDataset
 from src.detection_models.classes.MLP import MLPDetector
-
+import json
 
 # Set the seed value all over the place to make this reproducible.
 seed_val = 42
