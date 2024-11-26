@@ -1,0 +1,11 @@
+<html>
+    <head>
+        <title>Basic Vulnerable Response</title>
+    </head>
+    <body>
+
+        {% for item in payloads %}
+            {{item |safe}}
+        {% endfor %}
+    </body>
+</html>
