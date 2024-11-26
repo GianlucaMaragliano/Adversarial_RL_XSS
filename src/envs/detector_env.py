@@ -10,13 +10,14 @@ import random
 from datasets.xss_dataset import XSSDataset
 from models.CNN import CNNDetector
 from models.MLP import MLPDetector
+from models.LSTM import LSTMDetector
 from utils.preprocess import process_payloads
 
 from utils import mutators
 import json
 
 class DetectorEnv(Env):
-    def __init__(self, config_detector, test=False):
+    def __init__(self, config, dataset, test=False):
         # There are 27 possible actions
         self.action_space = Discrete(27)
         # Maximum number of steps
@@ -34,24 +35,28 @@ class DetectorEnv(Env):
         # Current state is the current XSS example status
         self.state = "https://<script>alert('1')</script>"
         # Load the json file
-        with open(config_detector, 'r') as f:
-            config = json.load(f)
-        self.CNN_model, self.MLP_model, self.common_tokens = load_detection_models()
+  
+        sorted_tokens = pd.read_csv(config["vocabulary"])['tokens'].tolist()
+        if config["model"] == 'mlp':
+            model_architecture = MLPDetector
+        elif config["model"] == 'cnn':
+            model_architecture = CNNDetector
+        elif config["model"] == 'lstm':
+            model_architecture = LSTMDetector
+        else:
+            raise ValueError("Model not supported")
+        vocab_size = len(sorted_tokens)
+
+        self.model = model_architecture(vocab_size, config["embedding_dim"])
         # Current step
         self.current_step = 0
         # Initial last scores for each model is 1 = Malicious
-        self.last_cnn_score, self.last_mlp_score = 1, 1
+        self.last_score =  1
 
-        # Load the training set and test set
-        # df = pd.read_csv("../../data/train.csv")
-        df = pd.read_csv("../../data/adv_xss.txt", header=None, names=['Payloads'], on_bad_lines='skip')
-        # self.train_set = df[df['Class'] == "Malicious"].sample(frac=1, random_state=42)
-        # self.train_set = df.sample(frac=1, random_state=42)
-        self.train_set = df
+        # Load the dataset
+    
+        self.dataset = pd.read_csv(dataset, header=None, names=['Payloads'], on_bad_lines='skip')
 
-        # df = pd.read_csv("../../data/test.csv")
-        # self.test_set = df[df['Class'] == "Malicious"]
-        self.test_set = df
         self.test = test
         self.episode = -1
 
@@ -75,37 +80,28 @@ class DetectorEnv(Env):
         self.actions_taken[self.current_step] = action+1
         self.current_step += 1
 
-        cnn_output = self.CNN_model(xss_data)
-        mlp_output = self.MLP_model(xss_data)
-        cnn_prediction = torch.round(cnn_output)
-        mlp_prediction = torch.round(mlp_output)
+        output = self.model(xss_data)
+        prediction = torch.round(output)
 
-        embedded = self.CNN_model.embedding(xss_data).detach().numpy()
+        embedded = self.model.embedding(xss_data).detach().numpy()
 
-        self.last_cnn_score, self.last_mlp_score = cnn_output, mlp_output
+        self.last_score = output
 
-        # print(self.max_steps)
-        # print(self.state)
-        # print(process_xss_example)
-        # print(self.actions_taken)
-        # print(f"CNN Prediction: {cnn_output}, MLP Prediction: {mlp_output}")
-        # print()
-
-        outcome = not (cnn_prediction == 1 and mlp_prediction == 1)
+        outcome = not (prediction == 1)
 
         if not outcome:
-            reward = 0
+            reward = -1
             done = False
         else:
             # print('Success with payload:', mutated_xss_example)
-            reward = 1
+            reward = 10
             done = True
 
         self.max_steps -= 1
         if self.max_steps == 0:
             done = True
 
-        scores = np.array([mlp_output.item(), cnn_output.item()], dtype=np.float32)
+        scores = np.array(output.item(), dtype=np.float32)
         # observation = {"confidence": scores, "actions": self.actions_taken, "string": embedded}
         # observation = {"actions": self.actions_taken}
         observation = embedded
@@ -119,14 +115,14 @@ class DetectorEnv(Env):
         else:
             if not self.test:
                 # Randomly select an XSS example from the training set
-                self.state = self.train_set.sample(1).iloc[0]['Payloads']
+                self.state = self.dataset.sample(1).iloc[0]['Payloads']
             else:
                 # Test on every XSS example in the test set
                 self.episode += 1
-                self.state = self.test_set.iloc[self.episode]['Payloads']
+                self.state = self.dataset.iloc[self.episode]['Payloads']
 
         self.max_steps = 15
-        self.last_cnn_score, self.last_mlp_score = 1, 1
+        self.last_score = 1
         self.current_step = 0
         self.actions_taken = np.zeros(self.max_steps, dtype=np.int32)
         xss_df = pd.DataFrame([self.state], columns=['Payloads'])
@@ -134,7 +130,7 @@ class DetectorEnv(Env):
         _, process_xss_example = process_payloads(xss_df, self.common_tokens)
         xss_dataset = XSSDataset(process_xss_example, xss_df['Class'])
         xss_data = xss_dataset[0][0][None, ...]
-        string = self.CNN_model.embedding(xss_data).detach().numpy()
+        string = self.model.embedding(xss_data).detach().numpy()
         # obs = {"confidence": np.array([1.0, 1.0], dtype=np.float32), "actions": self.actions_taken, "string": string}
         obs = string
         return obs, {}
