@@ -49,7 +49,9 @@ def train(opt):
     torch.cuda.manual_seed_all(opt.seed)   
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     train_set = pd.read_csv(opt.trainset).sample(frac=1)
-    sorted_tokens, train_cleaned_tokenized_payloads = process_payloads(train_set, percentage=opt.vocab_size)
+    sorted_tokens = pd.read_csv(opt.vocabulary)['tokens'].tolist()
+
+    _, train_cleaned_tokenized_payloads = process_payloads(train_set, sorted_tokens=sorted_tokens)
     train_class_labels = train_set['Class']
 
     # Get the vocab size
@@ -75,15 +77,14 @@ def train(opt):
     else:
         raise ValueError("Model not supported")
     
-    model = model_architecture(vocab_size, opt.embedding_dim, XSSDataset.MAX_LENGTH).to(device)
+    model = model_architecture(vocab_size, opt.embedding_dim).to(device)
     criterion = nn.BCELoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr)
 
-    runs_folder = os.path.join(opt.runs_folder, opt.model, str(opt.vocab_size*100))
+    runs_folder = os.path.join(opt.runs_folder, opt.model, str(int(opt.vocab_size*100)))
+    os.makedirs(runs_folder, exist_ok=True)
 
-    pd.DataFrame({"tokens": sorted_tokens}).to_csv(os.path.join(runs_folder,'vocabulary.csv'))
     opt_dict = vars(opt)
-    opt_dict["vocabulary"] = os.path.join(runs_folder,'vocabulary.csv')
 
     os.makedirs(runs_folder, exist_ok=True)
     last_run = get_last_run_number(runs_folder)
@@ -92,7 +93,7 @@ def train(opt):
     opt_dict["runs_folder"] = runs_folder
     opt_dict["checkpoint"] = os.path.join(runs_folder, 'checkpoint.pth')
     with open(os.path.join(runs_folder, 'config.json'), 'w') as f:
-        json.dump(opt_dict, f)
+        json.dump(opt_dict, f,ensure_ascii=False,indent=4)
     epochs_without_improvement = 0
     
     for epoch in range(opt.epochs):
@@ -113,10 +114,12 @@ def train(opt):
 
 def add_parse_arguments(parser):
 
-    parser.add_argument('--trainset', type=str, default="data/detectors/train.csv", help='Training dataset')
-    parser.add_argument('--valset', type=str, default="data/detectors/val.csv", help='Validation dataset')
+    parser.add_argument('--trainset', type=str, required = True, help='Training dataset')
+    parser.add_argument('--valset', type=str, required = True, help='Validation dataset')
+    parser.add_argument('--vocabulary', type=str, required = True, help='Vocaboulary file')
+
     parser.add_argument('--model', type=str, default='mlp', help='mlp | cnn | lstm')
-    parser.add_argument('--runs_folder', type=str, default="src/detection_models/runs", help='Runs Folder')
+    parser.add_argument('--runs_folder', type=str, default="runs", help='Runs Folder')
     parser.add_argument('--vocab_size', type=float, default=0.1, help='Percentage of the most common tokens to keep in the vocab')
 
 

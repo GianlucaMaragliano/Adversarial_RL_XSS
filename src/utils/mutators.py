@@ -13,7 +13,7 @@ opening_bracket = r'<(?:&#(?:60|0*3[46]);)?'
 html_tag = r'<.+?>|%3c.+?%3e|&lt;.+?&gt;||%3c.+?&gt;||&lt;.+?%3e'
 js_tag = rf'{opening_bracket}script(?:&#(?:60|0*3[46]);)?'
 
-benign_set = pd.read_csv('../../data/train.csv')
+benign_set = pd.read_csv('data/10/detectors/train.csv')
 benign_set = benign_set[benign_set['Class'] == "Benign"]
 
 

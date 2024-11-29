@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.detection_models.XSS_dataset import XSSDataset
+from datasets.xss_dataset import XSSDataset
 
 
 class MLPDetector(nn.Module):

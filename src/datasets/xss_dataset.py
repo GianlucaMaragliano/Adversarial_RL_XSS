@@ -11,6 +11,10 @@ class XSSDataset(Dataset):
 
     def __init__(self, features, labels):
         encoded_labels = self.class_encoder.fit_transform(labels)
+        #print unique labels with np
+        if len (np.unique(encoded_labels))==1:
+            #increment to 1 all the encoded labels
+            encoded_labels += 1
         self.labels = torch.tensor(encoded_labels).unsqueeze(dim=-1)
         features = [tokens[:self.MAX_LENGTH] for tokens in features]
         features = [tokens + ['None'] * (self.MAX_LENGTH - len(tokens)) for tokens in features]

@@ -124,9 +124,9 @@ def preprocess_payload(payload):
     return preprocessed_payloads
 
 
-def process_payloads(payloads, sorted_tokens=None, percentage = 0.1):
+def process_payloads(payloads, sorted_tokens=None, percentage = 0.1, column="Payloads"):
     # Preprocess payloads
-    preprocessed_payloads = preprocess_payload(payloads['Payloads'])
+    preprocessed_payloads = preprocess_payload(payloads[column])
 
     # Tokenize payloads
     tokenized_payloads = [xss_tokenizer(payload) for payload in preprocessed_payloads]

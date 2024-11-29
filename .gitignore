@@ -4,3 +4,7 @@
 
 
 .dvc/google_drive_credentials.json
+
+run/*
+
+data/*
