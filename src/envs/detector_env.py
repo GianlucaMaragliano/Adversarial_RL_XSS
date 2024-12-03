@@ -6,6 +6,7 @@ import torch
 from gymnasium import Env
 from gymnasium.spaces import Discrete, Box, MultiDiscrete
 import copy
+from utils.dataset_utils import check_column_validity_with_oracle
 
 import numpy as np
 import random
@@ -24,9 +25,11 @@ class DetectorEnv(Env, ABC):
     def pick_sample(self):
         pass
 
-    def __init__(self, config, dataset, max_steps= 15, num_actions = 27):
+    def __init__(self, config, dataset, endpoint, use_oracle_guided_reward = False, max_steps= 15, num_actions = 27):
 
         self.num_actions = num_actions
+        self.endpoint = endpoint
+        self.use_oracle_guided_reward = use_oracle_guided_reward
         # There are 27 possible actions
         self.action_space = Discrete(self.num_actions )
         # Maximum number of steps
@@ -102,8 +105,24 @@ class DetectorEnv(Env, ABC):
         if self.remaining_steps == 0:
             self.done = True
             self.success = False
+
+        if self.use_oracle_guided_reward:
+            return self.oracle_guided_reward(xss_df, reward)
+
         return reward
 
+    def oracle_guided_reward(self, xss_df, valid_reward):
+        xss_df["tokenized"] = process_payloads(xss_df, self.common_tokens)[1]
+        xss_df['reconstructed'] = xss_df['tokenized'].map(lambda x: ' '.join(x))
+        try:
+            valid = (check_column_validity_with_oracle(xss_df, 'reconstructed', self.endpoint)).map(lambda x: not x).iloc[0]
+        except Exception as e:
+            valid = False
+        xss_df = xss_df.drop(columns=['tokenized', "reconstructed"])
+        if valid:
+            return valid_reward
+        else:
+            return -5
 
     def step(self, action):
         action_name = "action_" + str(action + 1)

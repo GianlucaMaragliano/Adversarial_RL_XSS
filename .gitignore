@@ -5,6 +5,6 @@
 
 .dvc/google_drive_credentials.json
 
-run/*
+runs/*
 
 data/*

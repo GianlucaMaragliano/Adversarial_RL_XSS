@@ -24,9 +24,11 @@ def train_adversarial_agent(opt):
 
     validation_set = pd.read_csv(opt.valset, on_bad_lines='skip')
 
-    train_env = TrainEnv(config_detector,train_set, max_steps=opt.episode_max_steps, num_actions=opt.n_actions)
+    train_env = TrainEnv(config_detector,train_set,opt.endpoint,opt.oracle_guided_reward, max_steps=opt.episode_max_steps, num_actions=opt.n_actions)
+    eval_env = EvalEnv(config_detector, validation_set, opt.endpoint, opt.oracle_guided_reward,max_steps=opt.episode_max_steps, num_actions=opt.n_actions)
+    
+
     check_env(train_env)
-    eval_env = EvalEnv(config_detector, validation_set, max_steps=opt.episode_max_steps, num_actions=opt.n_actions)
     check_env(eval_env)
 
     detector_folder = '/'.join(opt.config_detector.split('/')[:-1])
@@ -50,13 +52,14 @@ def add_parse_arguments(parser):
     parser.add_argument('--config_detector', type=str, required=True, help='path of the config of the detector')
     parser.add_argument('--runs_folder', type=str, default="adversarial_agent", help='Runs Folder')
     parser.add_argument('--seed', type=int, default=42, help='seed for reproducibility')
+    parser.add_argument('--endpoint', type=str, default='http://127.0.0.1:5555/vuln_backend/1.0/endpoint/', help='Endpoint of the backend used by the oracle')
 
 
     #hyperparameters
     parser.add_argument('--timesteps', type=int, default=250000, help='number of epochs to train')
     parser.add_argument('--episode_max_steps', type=int, default=15, help='max number of steps per episode')
     parser.add_argument('--n_actions', type=int, default=27, help='number of available actions')
-
+    parser.add_argument('--oracle_guided_reward', action = "store_true", help='Use oracle guided reward')
 
     return parser
     

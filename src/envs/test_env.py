@@ -4,8 +4,8 @@ import pandas as pd
 
 class TestEnv(EvalEnv):
 
-    def __init__(self, config, dataset, max_steps= 15, num_actions = 27):
-        super().__init__(config, dataset, max_steps, num_actions)
+    def __init__(self, config, dataset, endpoint, use_oracle_guided_reward = False, max_steps= 15, num_actions = 27):
+        super().__init__(config, dataset, endpoint, use_oracle_guided_reward,max_steps, num_actions)
         self.successes = 0
         self.failures = 0
         self.success_payloads = pd.DataFrame(columns=['Payloads',"Original", "Class"])

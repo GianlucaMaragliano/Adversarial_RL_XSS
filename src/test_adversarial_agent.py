@@ -1,6 +1,7 @@
 import pandas as pd
 from stable_baselines3 import PPO
 from utils.utils import init_argument_parser
+from gymnasium.utils.env_checker import check_env
 
 from utils.preprocess import process_payloads
 from envs.test_env import TestEnv
@@ -21,7 +22,12 @@ def train_adversarial_agent(opt):
 
     test_set = pd.read_csv(opt.testset, on_bad_lines='skip')
 
-    env = TestEnv(config_detector, test_set, max_steps=opt.episode_max_steps, num_actions=opt.n_actions)
+    env = TestEnv(config_detector, test_set, opt.endpoint,opt.oracle_guided_reward,max_steps=opt.episode_max_steps, num_actions=opt.n_actions)
+
+
+    check_env(env)
+
+    
     model = PPO.load(opt.checkpoint, device = "cpu")
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=len(test_set), deterministic=True, render=False, reward_threshold=None, return_episode_rewards=False)
     print("Mean reward: ", mean_reward)
@@ -51,11 +57,13 @@ def add_parse_arguments(parser):
     parser.add_argument('--config_detector', type=str, required=True, help='path of the config of the detector')
     parser.add_argument('--checkpoint', type=str, required=True, help='path of the zip file of the agent')
     parser.add_argument('--seed', type=int, default=42, help='seed for reproducibility')
+    parser.add_argument('--endpoint', type=str, default='http://127.0.0.1:5555/vuln_backend/1.0/endpoint/', help='Endpoint of the backend used by the oracle')
 
 
     #hyperparameters
     parser.add_argument('--episode_max_steps', type=int, default=15, help='max number of steps per episode')
     parser.add_argument('--n_actions', type=int, default=27, help='number of available actions')
+    parser.add_argument('--oracle_guided_reward', action = "store_true", help='Use oracle guided reward')
 
 
     return parser
