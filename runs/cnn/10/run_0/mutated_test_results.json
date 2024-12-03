@@ -1,9 +1,0 @@
-{
-    "accuracy": 0.0,
-    "precision": 0,
-    "recall": 0.0,
-    "f2score": 0,
-    "f1score": 0,
-    "model": "cnn",
-    "run": "runs/cnn/10/run_0"
-}
