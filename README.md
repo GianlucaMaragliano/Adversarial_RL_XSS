@@ -1,6 +1,6 @@
-# XSS adversarial example attacks based on deep reinforcement learning: A Replication and Extension study
+# XSS Adversarial Attacks Based on Deep Reinforcement Learning: A Replication and Extension Study
 
-This repository contains all the code related to the paper "XSS adversarial example attacks based on deep reinforcement learning: A Replication and Extension study" submitted to COSE.
+This repository contains all the code related to the paper "XSS Adversarial Attacks Based on Deep Reinforcement Learning: A Replication and Extension Study" submitted to COSE.
 This work replicates a reference study, underlining someweaknesses of the original work and trying to extend it towards a more effective evaluation strategy, also introducing an oracle to mitigate these threats to validity. 
 
 In the page [Artifacts](docs/artifacts.md) you can find the guide to download the artifacts with their accurate description.
