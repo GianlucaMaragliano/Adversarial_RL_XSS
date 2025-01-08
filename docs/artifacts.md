@@ -1,4 +1,4 @@
-# Artifacts of 'XSS adversarial example attacks based on deep reinforcement learning: A Replication and Extension study'
+# Artifacts of 'XSS Adversarial Attacks Based on Deep Reinforcement Learning: A Replication and Extension Study'
 
 All the artifacts are available at [FigShare](https://figshare.com/articles/dataset/Artifacts_of_XSS_adversarial_example_attacks_based_on_deep_reinforcement_learning_A_Replication_and_Extension_study_/27959817).
 In FigShare there are the data and the experiments (runs) in two separate zip files.
